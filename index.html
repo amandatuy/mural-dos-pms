@@ -347,6 +347,49 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
   box-shadow: var(--shadow);
 }
 
+/* --- gate extras --- */
+.gate-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.gate .dots { margin-bottom: 0; }
+.gate-blocked {
+  margin-top: 16px; padding: 12px 14px; border-radius: 12px;
+  background: var(--vote-soft); border: 1px solid var(--vote);
+  display: flex; flex-direction: column; gap: 4px; font-size: 13.5px;
+}
+.gate-blocked b { color: var(--ink); }
+.gate-blocked span { color: var(--ink-soft); }
+
+/* --- theme toggle --- */
+.head-right { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.head-tools { display: flex; }
+.theme-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surface); border: 1px solid var(--border); color: var(--ink-soft);
+  border-radius: 12px; padding: 8px 12px; font-size: 13px; font-weight: 700;
+  cursor: pointer; box-shadow: var(--shadow-sm); font-family: inherit;
+}
+.theme-btn:hover { border-color: var(--accent); color: var(--accent); }
+.theme-lbl { font-size: 11.5px; }
+
+/* --- inline edit --- */
+.edit-btn {
+  background: none; border: none; padding: 0 2px; cursor: pointer;
+  color: var(--ink-faint); font-size: 13px; line-height: 1; font-family: inherit;
+  opacity: .55; transition: opacity .12s, color .12s;
+}
+.edit-btn:hover { opacity: 1; color: var(--accent); }
+.card:hover .edit-btn, .theme-head:hover .edit-btn { opacity: .9; }
+.edit-form { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; margin: 2px 0; }
+.edit-form input {
+  flex: 1; min-width: 180px; padding: 8px 11px; border-radius: 9px;
+  border: 1px solid var(--accent); background: var(--surface); font-size: 15px;
+  color: var(--ink); font-family: inherit;
+}
+.theme-head .edit-form input { font-size: 18px; font-weight: 800; }
+.banner code {
+  font-family: 'DM Mono', monospace; font-size: .92em;
+  background: var(--surface); padding: 1px 5px; border-radius: 5px;
+}
+
 </style>
 </head>
 <body>
@@ -357,7 +400,7 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
 
   var HUES = 6;
   var state = { themes: [] };
-  var ui = { search: "", notices: {} };
+  var ui = { search: "", notices: {}, editing: null, gateBusy: false };
   var me = null;
   var API_URL = "https://script.google.com/macros/s/AKfycbzJaOmd08XIhdD8Anlms3otABsvKB0CXAHmzV_uYOxwNx7O0PlKO3GfB5sosS6vt9JFXw/exec";
   var isReadOnly = false;
@@ -365,6 +408,7 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
   var loading = true;
   var pending = 0;
   var queue = Promise.resolve();
+  var guardOn = true;
   var toastTimer = null;
 
   /* ---------------- helpers ---------------- */
@@ -397,6 +441,42 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
     return hits / Math.max(ta.length, tb.length);
   }
   function isEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || "").trim()); }
+  function normPhone(v) {
+    var d = String(v == null ? "" : v).replace(/\D/g, "");
+    if (d.length > 11 && d.indexOf("55") === 0) d = d.slice(2);
+    if (d.length === 12 && d.charAt(0) === "0") d = d.slice(1);
+    return d.length === 11 ? d : "";
+  }
+  function prettyPhone(d) {
+    d = normPhone(d);
+    return d ? "(" + d.slice(0,2) + ") " + d.slice(2,7) + "-" + d.slice(7) : "";
+  }
+  function canEdit(author) {
+    return !!(me && person(author).email &&
+      emailKey(person(author).email) === emailKey(me.email));
+  }
+  function themeToggleHtml() {
+    return '<button type="button" class="theme-btn" data-action="cycle-theme" title="Tema: claro, escuro ou do sistema" aria-label="Trocar tema">' +
+      themeIcon() + '</button>';
+  }
+  function themePref() {
+    try { return localStorage.getItem("pmx_theme") || "system"; } catch (e) { return "system"; }
+  }
+  function setThemePref(v) {
+    try { localStorage.setItem("pmx_theme", v); } catch (e) {}
+    applyTheme();
+  }
+  function applyTheme() {
+    var p = themePref();
+    if (p === "system") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", p);
+  }
+  function themeIcon() {
+    var p = themePref();
+    if (p === "light") return '<span aria-hidden="true">\u2600</span><span class="theme-lbl">claro</span>';
+    if (p === "dark")  return '<span aria-hidden="true">\u263D</span><span class="theme-lbl">escuro</span>';
+    return '<span aria-hidden="true">\u25D1</span><span class="theme-lbl">sistema</span>';
+  }
   function emailKey(s) { return String(s || "").trim().toLowerCase(); }
   function initials(name) {
     var parts = String(name || "").trim().split(/\s+/).filter(Boolean);
@@ -421,7 +501,8 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
       var raw = localStorage.getItem("pmx_me");
       if (!raw) return null;
       var p = JSON.parse(raw);
-      if (p && p.name && isEmail(p.email)) return { name: p.name, email: p.email };
+      if (p && p.name && isEmail(p.email) && normPhone(p.whatsapp))
+        return { name: p.name, email: p.email, whatsapp: normPhone(p.whatsapp) };
     } catch (e) {}
     return null;
   }
@@ -539,9 +620,11 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
   function renderGate(err) {
     var e = err || {};
     return '<div class="gate-wrap"><div class="gate">' +
-      '<div class="dots">' +
-        '<i style="background:var(--c1)"></i><i style="background:var(--c2)"></i><i style="background:var(--c3)"></i>' +
-        '<i style="background:var(--c4)"></i><i style="background:var(--c5)"></i><i style="background:var(--c6)"></i>' +
+      '<div class="gate-top">' +
+        '<div class="dots">' +
+          '<i style="background:var(--c1)"></i><i style="background:var(--c2)"></i><i style="background:var(--c3)"></i>' +
+          '<i style="background:var(--c4)"></i><i style="background:var(--c5)"></i><i style="background:var(--c6)"></i>' +
+        '</div>' + themeToggleHtml() +
       '</div>' +
       '<h1>Mural dos PMs</h1>' +
       '<p class="sub">Um espaço para dizer no que você precisa de ajuda, se oferecer para ajudar em outros temas e votar no que o grupo deve destrinchar primeiro.</p>' +
@@ -552,9 +635,17 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
         '<div class="field"><label for="g-email">Seu e-mail</label>' +
         '<input id="g-email" type="email" name="email" maxlength="80" autocomplete="email" placeholder="voce@empresa.com" value="' + esc(e.email || "") + '" />' +
         (e.emailErr ? '<span class="err">' + esc(e.emailErr) + '</span>' : '') + '</div>' +
-        '<button class="btn primary" type="submit">Entrar no mural</button>' +
+        '<div class="field"><label for="g-zap">Seu WhatsApp</label>' +
+        '<input id="g-zap" type="tel" name="whatsapp" maxlength="20" autocomplete="tel" inputmode="numeric" placeholder="11 91234-5678" value="' + esc(e.whatsapp || "") + '" />' +
+        (e.zapErr ? '<span class="err">' + esc(e.zapErr) + '</span>'
+                  : '<span class="hint">DDD + 9 dígitos. Confirmo se você está no grupo.</span>') + '</div>' +
+        '<button class="btn primary" type="submit"' + (ui.gateBusy ? ' disabled' : '') + '>' +
+        (ui.gateBusy ? 'Verificando…' : 'Entrar no mural') + '</button>' +
       '</form>' +
-      '<p class="fineprint">Seus dados ficam salvos só no seu navegador e aparecem no mural junto do que você publicar.</p>' +
+      (e.blocked ? '<div class="gate-blocked"><b>Não encontrei seu número na lista.</b>' +
+        '<span>Avisa lá no grupo do WhatsApp que a gente te libera. ' +
+        'Confere também se digitou DDD + 9 dígitos.</span></div>' : '') +
+      '<p class="fineprint">Nome, e-mail e WhatsApp ficam salvos só no seu navegador. Seu número não aparece no mural — serve apenas para confirmar que você é do grupo.</p>' +
     '</div></div>';
   }
 
@@ -577,6 +668,22 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
     if (!pp.email) return '<span class="person plain">' + esc(pp.name) + '</span>';
     return '<button type="button" class="person" data-action="copy-email" data-email="' + esc(pp.email) + '" ' +
       'title="' + esc(pp.email) + ' — clique para copiar">' + esc(pp.name) + '</button>';
+  }
+
+  function editBtn(kind, id) {
+    return '<button type="button" class="edit-btn" data-action="edit-start" data-kind="' + kind + '" data-id="' + esc(id) + '" title="Editar o que você escreveu" aria-label="Editar">\u270E</button>';
+  }
+
+  function isEditing(kind, id) {
+    return !!(ui.editing && ui.editing.kind === kind && ui.editing.id === id);
+  }
+
+  function editForm(kind, id, value, max) {
+    return '<form class="edit-form" data-form="edit" data-kind="' + kind + '" data-id="' + esc(id) + '">' +
+      '<input type="text" name="value" maxlength="' + max + '" value="' + esc(value) + '" data-focus-key="edit" required />' +
+      '<button class="btn small primary" type="submit">Salvar</button>' +
+      '<button class="btn small" type="button" data-action="edit-cancel">Cancelar</button>' +
+    '</form>';
   }
 
   function chipHtml(p) {
@@ -602,7 +709,10 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
     var qs = s.questions || [];
     var qList = qs.length
       ? '<ul class="questions">' + qs.map(function (q) {
-          return '<li>' + esc(q.text) + ' <span class="q-author">— ' + personHtml(q.author) + '</span></li>';
+          if (isEditing("question", q.id)) return '<li>' + editForm("question", q.id, q.text, 400) + '</li>';
+          return '<li>' + esc(q.text) +
+            (!opts.neutral && !ro && canEdit(q.author) ? " " + editBtn("question", q.id) : "") +
+            ' <span class="q-author">— ' + personHtml(q.author) + '</span></li>';
         }).join("") + '</ul>'
       : '<p class="empty-hint">Ainda sem dúvidas. Escreva o que está te travando neste assunto.</p>';
 
@@ -623,7 +733,10 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
 
     return '<article class="card' + (s.scheduled ? ' scheduled' : '') + '">' +
       '<div class="card-top"><div class="card-main">' +
-        '<h4>' + esc(s.name) + (s.scheduled ? '<span class="badge">Encontro marcado</span>' : '') + '</h4>' + byline +
+        (isEditing("subject", s.id)
+          ? editForm("subject", s.id, s.name, 120)
+          : '<h4>' + esc(s.name) + (s.scheduled ? '<span class="badge">Encontro marcado</span>' : '') +
+            (!opts.neutral && !ro && canEdit(s.author) ? " " + editBtn("subject", s.id) : "") + '</h4>') + byline +
       '</div>' + voteBtn + '</div>' +
       '<div class="q-head"><span class="eyebrow">Dúvidas (' + qs.length + ')</span></div>' + qList + qForm +
       '<div class="helpers"><span class="eyebrow">Quem pode ajudar (' + experts.length + ')</span>' +
@@ -649,7 +762,10 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
       : '<p class="empty-hint">' + (ui.search ? "Nenhum assunto deste tema bate com a busca." : "Nenhum assunto por aqui ainda.") + '</p>';
 
     return '<section class="theme-block hue-' + ((t.hue || 0) % HUES + 1) + '">' +
-      '<div class="theme-head"><h3>' + esc(t.name) + '</h3>' +
+      '<div class="theme-head">' +
+      (isEditing("theme", t.id)
+        ? editForm("theme", t.id, t.name, 80)
+        : '<h3>' + esc(t.name) + (!opts.neutral && !isReadOnly && canEdit(t.author) ? " " + editBtn("theme", t.id) : "") + '</h3>') +
       '<span class="theme-meta">' + open + ' aberto' + (open === 1 ? "" : "s") + ' · ' + total + ' no total' +
       (ta.name ? ' · criado por ' + personHtml(ta) : '') + '</span></div>' +
       addForm + body +
@@ -680,10 +796,12 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
           '<button class="btn ghost small" data-action="switch-user" title="Trocar de pessoa">Trocar</button>' +
         '</div>'
       : '';
+    var themeBox = '<div class="head-tools">' + themeToggleHtml() + '</div>';
 
     var banner = "";
     if (opts.neutral) banner = "";
     else if (loading) banner = '<div class="banner">Carregando o mural…</div>';
+    else if (!guardOn) banner = '<div class="banner err">A lista de participantes ainda não está configurada — <b>qualquer pessoa com o link entra</b>. Preencha a aba <code>allowlist</code> na planilha.</div>';
     else if (netError) banner = '<div class="banner err">Não estou conseguindo falar com a planilha. O que você fizer agora pode não ser salvo. <button type="button" class="linkish" data-action="retry">tentar de novo</button></div>';
 
     var searchVal = opts.neutral ? "" : ui.search;
@@ -735,7 +853,7 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
       '<header class="topbar"><div class="brand"><h1>Mural dos PMs</h1>' +
         '<div class="rule"><i style="background:var(--c1)"></i><i style="background:var(--c2)"></i><i style="background:var(--c3)"></i><i style="background:var(--c4)"></i><i style="background:var(--c5)"></i><i style="background:var(--c6)"></i></div>' +
         '<p>Diga no que precisa de ajuda, ofereça o que você domina e vote nos assuntos que o grupo deve encarar primeiro.</p></div>' +
-        meBox + '</header>' +
+        '<div class="head-right">' + themeBox + meBox + '</div></header>' +
       howto + banner +
       '<div class="toolbar">' + searchBox + '</div>' +
       stats +
@@ -862,16 +980,31 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
     toastTimer = setTimeout(function () { t.remove(); }, 3400);
   }
 
-  function apiGet() {
-    return fetch(API_URL, { method: "GET" }).then(function (r) { return r.json(); });
-  }
-
   function apiPost(body) {
     return fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(body)
+      body: JSON.stringify(withMe(body))
     }).then(function (r) { return r.json(); });
+  }
+
+  function withMe(body) {
+    var b = {};
+    Object.keys(body).forEach(function (k) { b[k] = body[k]; });
+    b.person = me ? { name: me.name, email: me.email, whatsapp: me.whatsapp } : null;
+    return b;
+  }
+
+  function handleDenied(res) {
+    var code = res && res.code;
+    if (code === "not_allowed" || code === "bad_phone") {
+      clearMe();
+      me = null;
+      ui.gateErr = { blocked: true };
+      paint();
+      return true;
+    }
+    return false;
   }
 
   function isTyping() {
@@ -892,8 +1025,11 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
   }
 
   function refresh(silent) {
-    return apiGet().then(function (res) {
+    if (!me) return Promise.resolve();
+    return apiPost({ action: "load" }).then(function (res) {
+      if (res && !res.ok && handleDenied(res)) return;
       if (!res || !res.ok) throw new Error((res && res.error) || "resposta inválida");
+      guardOn = res.guard !== false;
       var next = normalizeState(res.state);
       var changed = JSON.stringify(next) !== JSON.stringify(state);
       var wasBlocked = loading || netError;
@@ -917,7 +1053,9 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
     updateSaving();
     queue = queue.then(function () {
       return apiPost(action).then(function (res) {
+        if (res && !res.ok && handleDenied(res)) return;
         if (!res || !res.ok) throw new Error((res && res.error) || "erro no servidor");
+        guardOn = res.guard !== false;
         netError = false;
         state = normalizeState(res.state);
         if (pending === 1) paint();
@@ -1066,6 +1204,38 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
     });
   }
 
+  function applyEdit(kind, id, val) {
+    var st = cloneState();
+    var action = null;
+    if (kind === "theme") {
+      var t = findTheme(st, id);
+      if (!t || !canEdit(t.author)) return;
+      t.name = val;
+      action = { action: "editTheme", themeId: id, name: val };
+    } else if (kind === "subject") {
+      var found = null;
+      (st.themes || []).forEach(function (th) {
+        (th.subjects || []).forEach(function (s) { if (s.id === id) found = s; });
+      });
+      if (!found || !canEdit(found.author)) return;
+      found.name = val;
+      action = { action: "editSubject", subjectId: id, name: val };
+    } else if (kind === "question") {
+      var q = null;
+      (st.themes || []).forEach(function (th) {
+        (th.subjects || []).forEach(function (s) {
+          (s.questions || []).forEach(function (x) { if (x.id === id) q = x; });
+        });
+      });
+      if (!q || !canEdit(q.author)) return;
+      q.text = val;
+      action = { action: "editQuestion", questionId: id, text: val };
+    }
+    if (!action) return;
+    ui.editing = null;
+    persist(st, null, action);
+  }
+
   /* ---------------- events ---------------- */
 
   function onSubmit(e) {
@@ -1075,16 +1245,58 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
     var kind = form.getAttribute("data-form");
 
     if (kind === "enter") {
+      if (ui.gateBusy) return;
       var name = (form.querySelector('[name="name"]').value || "").trim();
       var email = (form.querySelector('[name="email"]').value || "").trim();
-      var err = { name: name, email: email };
+      var zapRaw = (form.querySelector('[name="whatsapp"]').value || "").trim();
+      var zap = normPhone(zapRaw);
+      var err = { name: name, email: email, whatsapp: zapRaw };
       if (name.length < 2) err.nameErr = "Escreva seu nome (pelo menos 2 letras).";
       if (!isEmail(email)) err.emailErr = "E-mail inválido. Use o formato voce@empresa.com.";
-      if (err.nameErr || err.emailErr) { ui.gateErr = err; paint(); return; }
+      if (!zap) err.zapErr = "Número inválido. Use DDD + 9 dígitos, ex.: 11 91234-5678.";
+      if (err.nameErr || err.emailErr || err.zapErr) { ui.gateErr = err; paint(); return; }
+
+      var candidate = { name: name, email: email, whatsapp: zap };
+      me = candidate;
       ui.gateErr = null;
-      me = { name: name, email: email };
-      saveMe(me);
+      ui.gateBusy = true;
       paint();
+
+      apiPost({ action: "load" }).then(function (res) {
+        ui.gateBusy = false;
+        if (res && res.ok) {
+          guardOn = res.guard !== false;
+          netError = false;
+          loading = false;
+          state = normalizeState(res.state);
+          saveMe(candidate);
+          paint();
+          return;
+        }
+        me = null;
+        if (res && (res.code === "not_allowed" || res.code === "bad_phone")) {
+          ui.gateErr = { name: name, email: email, whatsapp: zapRaw, blocked: true };
+        } else {
+          ui.gateErr = { name: name, email: email, whatsapp: zapRaw,
+            zapErr: "Não deu para verificar agora. Tente de novo em alguns segundos." };
+        }
+        paint();
+      }).catch(function () {
+        ui.gateBusy = false;
+        me = null;
+        ui.gateErr = { name: name, email: email, whatsapp: zapRaw,
+          zapErr: "Sem conexão com a planilha. Tente de novo." };
+        paint();
+      });
+      return;
+    }
+
+    if (kind === "edit") {
+      var val = (form.querySelector('[name="value"]').value || "").trim();
+      if (!val) return;
+      var ekind = form.getAttribute("data-kind");
+      var eid = form.getAttribute("data-id");
+      applyEdit(ekind, eid, val);
       return;
     }
 
@@ -1105,6 +1317,24 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
     if (action === "clear-search") { ui.search = ""; paint(); return; }
 
     if (action === "retry") { loading = true; paint(); refresh(); return; }
+
+    if (action === "cycle-theme") {
+      var order = ["system", "light", "dark"];
+      var next = order[(order.indexOf(themePref()) + 1) % order.length];
+      setThemePref(next);
+      paint();
+      return;
+    }
+
+    if (action === "edit-start") {
+      var kid = btn.getAttribute("data-id");
+      if (isTemp(kid)) { toast("Espere terminar de salvar."); return; }
+      ui.editing = { kind: btn.getAttribute("data-kind"), id: kid };
+      paint("edit");
+      return;
+    }
+
+    if (action === "edit-cancel") { ui.editing = null; paint(); return; }
 
     if (action === "copy-email") {
       var em = btn.getAttribute("data-email");
@@ -1170,6 +1400,7 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
   }
 
   function init() {
+    applyTheme();
     state = { themes: [] };
     me = loadMe();
     var app = document.getElementById("app");

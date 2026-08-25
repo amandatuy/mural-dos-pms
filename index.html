@@ -340,6 +340,37 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
 }
 .banner.err { background: var(--vote-soft); border-color: var(--vote); color: var(--ink); }
 .banner .linkish { color: var(--vote); font-weight: 700; }
+/* --- índice horizontal --- */
+.tindex {
+  display: flex; gap: 7px; margin-top: 10px; padding-bottom: 4px;
+  overflow-x: auto; scrollbar-width: thin;
+}
+.tchip {
+  display: inline-flex; align-items: center; gap: 7px; flex: none;
+  background: var(--ths); color: var(--thf); border: 1px solid transparent;
+  border-radius: 999px; padding: 7px 13px; font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.tchip:hover { border-color: var(--th); }
+.tcount { font-size: 11.5px; opacity: .75; font-weight: 500; }
+.tchip.toggle-all {
+  background: transparent; color: var(--ink-faint); border: 1px dashed var(--border); font-weight: 600;
+}
+.tchip.toggle-all:hover { color: var(--accent); border-color: var(--accent); }
+
+/* --- card colapsável --- */
+.card-top { cursor: pointer; }
+.card.open .card-top { cursor: default; }
+.card-sum { font-size: 12.5px; color: var(--ink-faint); margin-top: 5px; font-weight: 600; }
+.chev {
+  flex: none; background: none; border: none; cursor: pointer; font-family: inherit;
+  color: var(--ink-faint); font-size: 15px; line-height: 1; padding: 8px 4px;
+  transition: transform .15s, color .12s;
+}
+.chev:hover { color: var(--accent); }
+.chev.up { transform: rotate(180deg); }
+.card-body { margin-top: 2px; }
+
 #pmx-saving {
   position: fixed; right: 14px; bottom: 14px; z-index: 998;
   background: var(--surface); border: 1px solid var(--border); color: var(--ink-faint);
@@ -400,7 +431,7 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
 
   var HUES = 6;
   var state = { themes: [] };
-  var ui = { search: "", notices: {}, editing: null, gateBusy: false };
+  var ui = { search: "", notices: {}, editing: null, gateBusy: false, open: {} };
   var me = null;
   var API_URL = "https://script.google.com/macros/s/AKfycbzJaOmd08XIhdD8Anlms3otABsvKB0CXAHmzV_uYOxwNx7O0PlKO3GfB5sosS6vt9JFXw/exec";
   var isReadOnly = false;
@@ -557,6 +588,16 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
   function findSubject(t, id) { return (t.subjects || []).filter(function (s) { return s.id === id; })[0]; }
   function votes(s) { return (s.voters || []).length; }
   function isTemp(id) { return String(id || "").indexOf("tmp_") === 0; }
+  function themeVotes(t) {
+    return (t.subjects || []).reduce(function (a, s) { return a + votes(s); }, 0);
+  }
+  function allSubjectIds(st) {
+    var out = [];
+    (st.themes || []).forEach(function (t) {
+      (t.subjects || []).forEach(function (x) { out.push(x.id); });
+    });
+    return out;
+  }
   function themeIdOfSubject(st, subjectId) {
     var found = null;
     (st.themes || []).forEach(function (t) {
@@ -581,12 +622,17 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
   }
   function filteredThemes(st, rawQuery) {
     var q = norm(rawQuery);
-    if (!q) return (st.themes || []).map(function (t) { return { theme: t, subjects: sortSubjects(t.subjects || []) }; });
     var out = [];
-    (st.themes || []).forEach(function (t) {
+    (st.themes || []).forEach(function (t, i) {
+      if (!q) { out.push({ theme: t, subjects: sortSubjects(t.subjects || []), i: i }); return; }
       var themeHit = norm(t.name).indexOf(q) !== -1;
       var subs = (t.subjects || []).filter(function (s) { return themeHit || subjectMatches(s, q); });
-      if (subs.length || themeHit) out.push({ theme: t, subjects: sortSubjects(subs) });
+      if (subs.length || themeHit) out.push({ theme: t, subjects: sortSubjects(subs), i: i });
+    });
+    // mais votados primeiro; empate mantém a ordem de criação
+    out.sort(function (a, b) {
+      var d = themeVotes(b.theme) - themeVotes(a.theme);
+      return d !== 0 ? d : a.i - b.i;
     });
     return out;
   }
@@ -708,7 +754,7 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
     var qKey = "q:" + s.id;
     var qForm = ro ? "" :
       '<form class="inline" data-form="add-question" data-th="' + t.id + '" data-t="' + s.id + '" style="margin-top:9px">' +
-      '<input type="text" name="text" data-focus-key="' + esc(qKey) + '" placeholder="Qual é a sua dúvida aqui?" maxlength="220" required />' +
+      '<input type="text" name="text" data-focus-key="' + esc(qKey) + '" placeholder="Qual é a sua dúvida aqui? (conta como voto)" maxlength="400" required />' +
       '<button class="btn small" type="submit">Adicionar</button></form>' + noticeHtml(qKey);
 
     var experts = s.experts || [];
@@ -720,18 +766,39 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
       '<button class="btn ghost small" data-action="sched" data-th="' + t.id + '" data-t="' + s.id + '">' +
       (s.scheduled ? "Reabrir assunto" : "Marcar encontro agendado") + '</button>';
 
-    return '<article class="card' + (s.scheduled ? ' scheduled' : '') + '">' +
-      '<div class="card-top"><div class="card-main">' +
+    var searching = !opts.neutral && !!ui.search;
+    var open = opts.neutral ? false
+      : (!!ui.open[s.id] || isEditing("subject", s.id) || searching);
+
+    var summary = '<div class="card-sum">' +
+      (qs.length ? qs.length + (qs.length === 1 ? ' dúvida' : ' dúvidas') : 'sem dúvidas ainda') +
+      (experts.length ? ' · ' + experts.length + (experts.length === 1 ? ' pode ajudar' : ' podem ajudar') : '') +
+    '</div>';
+
+    var head = '<div class="card-top"' + (opts.neutral ? '' : ' data-action="toggle-subject" data-t="' + s.id + '"') + '>' +
+      '<div class="card-main">' +
         (isEditing("subject", s.id)
           ? editForm("subject", s.id, s.name, 120)
           : '<h4>' + esc(s.name) + (s.scheduled ? '<span class="badge">Encontro marcado</span>' : '') +
-            (!opts.neutral && !ro && canEdit(s.author) ? " " + editBtn("subject", s.id) : "") + '</h4>') + byline +
-      '</div>' + voteBtn + '</div>' +
-      '<div class="q-head"><span class="eyebrow">Dúvidas (' + qs.length + ')</span></div>' + qList + qForm +
-      '<div class="helpers"><span class="eyebrow">Quem pode ajudar (' + experts.length + ')</span>' +
-        '<div class="chips">' + experts.map(chipHtml).join("") + helperBtn + '</div></div>' +
-      '<div class="card-footer">' + schedBtn + '</div>' +
-    '</article>';
+            (!opts.neutral && !ro && canEdit(s.author) ? " " + editBtn("subject", s.id) : "") + '</h4>') +
+        byline + (open ? '' : summary) +
+      '</div>' +
+      (opts.neutral ? '' :
+        '<button type="button" class="chev' + (open ? ' up' : '') + '" data-action="toggle-subject" data-t="' + s.id + '" ' +
+        'aria-expanded="' + (open ? 'true' : 'false') + '" aria-label="' + (open ? 'Fechar assunto' : 'Abrir assunto') + '">\u25BE</button>') +
+      voteBtn +
+    '</div>';
+
+    var body = !open ? '' :
+      '<div class="card-body">' +
+        '<div class="q-head"><span class="eyebrow">Dúvidas (' + qs.length + ')</span></div>' + qList + qForm +
+        '<div class="helpers"><span class="eyebrow">Quem pode ajudar (' + experts.length + ')</span>' +
+          '<div class="chips">' + experts.map(chipHtml).join("") + helperBtn + '</div></div>' +
+        '<div class="card-footer">' + schedBtn + '</div>' +
+      '</div>';
+
+    return '<article class="card' + (s.scheduled ? ' scheduled' : '') + (open ? ' open' : '') + '">' +
+      head + body + '</article>';
   }
 
   function renderThemeBlock(entry, opts) {
@@ -750,7 +817,7 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
       ? '<div class="subjects">' + subs.map(function (s) { return renderSubject(t, s, opts); }).join("") + '</div>'
       : '<p class="empty-hint">' + (ui.search ? "Nenhum assunto deste tema bate com a busca." : "Nenhum assunto por aqui ainda.") + '</p>';
 
-    return '<section class="theme-block hue-' + ((t.hue || 0) % HUES + 1) + '">' +
+    return '<section class="theme-block hue-' + ((t.hue || 0) % HUES + 1) + '" id="th-' + esc(t.id) + '">' +
       '<div class="theme-head">' +
       (isEditing("theme", t.id)
         ? editForm("theme", t.id, t.name, 80)
@@ -800,6 +867,23 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
       (searchVal ? '<button class="clear" data-action="clear-search" aria-label="Limpar busca">×</button>' : '') +
     '</div>';
 
+    var idxThemes = (themes || []).slice().map(function (t, i) { return { t: t, i: i }; });
+    idxThemes.sort(function (a, b) {
+      var d = themeVotes(b.t) - themeVotes(a.t);
+      return d !== 0 ? d : a.i - b.i;
+    });
+    var anyOpen = !opts.neutral && Object.keys(ui.open).some(function (k) { return ui.open[k]; });
+    var indexBox = idxThemes.length ? '<nav class="tindex" aria-label="Ir para um tema">' +
+      idxThemes.map(function (x) {
+        var open = (x.t.subjects || []).filter(function (s) { return !s.scheduled; }).length;
+        return '<button type="button" class="tchip hue-' + ((x.t.hue || 0) % HUES + 1) + '" ' +
+          'data-action="goto-theme" data-th="' + esc(x.t.id) + '">' + esc(x.t.name) +
+          '<span class="tcount mono">' + open + '</span></button>';
+      }).join("") +
+      (opts.neutral ? '' : '<button type="button" class="tchip toggle-all" data-action="' +
+        (anyOpen ? 'close-all">fechar tudo' : 'open-all">abrir tudo') + '</button>') +
+    '</nav>' : '';
+
     var tKey = "theme";
     var addTheme = isReadOnly ? "" :
       '<form class="inline" data-form="add-theme">' +
@@ -833,7 +917,7 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
           '<span class="hier"><b>Tema</b><i>›</i><b>Assunto</b><i>›</i><b>Dúvida</b></span>' +
           '<span class="hier ex">Claude<i>›</i>Criação de skills<i>›</i>“Como testo antes de publicar?”</span>' +
           'Comece pelo tema: se já existir, é só adicionar seu assunto dentro dele.</li>' +
-        '<li><b>Escreva suas dúvidas dentro do assunto.</b> É isso que faz quem for ajudar chegar no encontro já sabendo o que responder, em vez de começar do zero.</li>' +
+        '<li><b>Escreva suas dúvidas dentro do assunto.</b> É isso que faz quem for ajudar chegar no encontro já sabendo o que responder, em vez de começar do zero. Escrever uma dúvida já conta como seu voto no assunto.</li>' +
         '<li><b>Marque “posso ajudar”</b> nos assuntos que você domina. Os mais votados viram encontro primeiro.</li>' +
       '</ol>' : '') +
     '</section>';
@@ -845,6 +929,7 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
         '<div class="head-right">' + themeBox + meBox + '</div></header>' +
       howto + banner +
       '<div class="toolbar">' + searchBox + '</div>' +
+      indexBox +
       stats +
       '<div class="toolbar">' + addTheme + '</div>' +
       trendHtml +
@@ -1174,7 +1259,17 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
     if (!s) return;
     s.questions = s.questions || [];
     s.questions.push({ id: "tmp_" + uid(), text: text, author: me });
-    persist(st, key, { action: "addQuestion", subjectId: subjectId, text: text, person: me });
+
+    s.voters = (s.voters || []).map(person);
+    var autoVoted = false;
+    if (me && !s.voters.some(function (v) { return emailKey(v.email) === emailKey(me.email); })) {
+      s.voters.push({ name: me.name, email: me.email });
+      autoVoted = true;
+    }
+
+    ui.open[subjectId] = true;
+    persist(st, key, { action: "addQuestion", subjectId: subjectId, text: text });
+    if (autoVoted) toast("Dúvida publicada — e seu voto neste assunto foi contado.");
   }
 
   function toggleMember(themeId, subjectId, field) {
@@ -1324,6 +1419,27 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
     }
 
     if (action === "edit-cancel") { ui.editing = null; paint(); return; }
+
+    if (action === "toggle-subject") {
+      var tid = btn.getAttribute("data-t");
+      ui.open[tid] = !ui.open[tid];
+      paint();
+      return;
+    }
+
+    if (action === "open-all") {
+      allSubjectIds(state).forEach(function (id) { ui.open[id] = true; });
+      paint();
+      return;
+    }
+
+    if (action === "close-all") { ui.open = {}; paint(); return; }
+
+    if (action === "goto-theme") {
+      var el = document.getElementById("th-" + btn.getAttribute("data-th"));
+      if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
 
     if (action === "copy-email") {
       var em = btn.getAttribute("data-email");

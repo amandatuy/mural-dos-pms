@@ -1,0 +1,1196 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mural dos PMs</title>
+<meta name="description" content="Mural onde PMs registram temas, dúvidas, quem pode ajudar e votam no que priorizar." />
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;800&family=DM+Mono:wght@500&display=swap');
+
+:root {
+  --bg: #F3F1F7;
+  --surface: #FFFFFF;
+  --surface-2: #EDEAF4;
+  --ink: #1B1725;
+  --ink-soft: #55506B;
+  --ink-faint: #857FA0;
+  --border: #DFDAEC;
+  --accent: #4739C9;
+  --accent-strong: #33279B;
+  --accent-soft: #E4E0FA;
+  --vote: #E0533E;
+  --vote-soft: #FBE5E0;
+  --danger: #B3261E;
+  --shadow-sm: 0 1px 2px rgba(27,23,37,.06);
+  --shadow: 0 1px 2px rgba(27,23,37,.05), 0 6px 18px rgba(27,23,37,.07);
+  --c1: #E0533E; --c1s: #FBE5E0; --c1f: #9E3423;
+  --c2: #C97F0A; --c2s: #F8EBD2; --c2f: #8A5606;
+  --c3: #6A4BD1; --c3s: #E8E2FA; --c3f: #4A32A0;
+  --c4: #0D8F81; --c4s: #D3EEEA; --c4f: #0A6A60;
+  --c5: #C93C74; --c5s: #F8DAE6; --c5f: #96274F;
+  --c6: #2A67CC; --c6s: #DAE6F9; --c6f: #1C4A99;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131020;
+    --surface: #1C1830;
+    --surface-2: #241F3C;
+    --ink: #EDEAF7;
+    --ink-soft: #B3ACCE;
+    --ink-faint: #7D769B;
+    --border: #322B4E;
+    --accent: #9B8AF5;
+    --accent-strong: #BCADFF;
+    --accent-soft: #2A2350;
+    --vote: #FF8F79;
+    --vote-soft: #3A211C;
+    --danger: #FF9A90;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.35);
+    --c1: #FF8F79; --c1s: #3A211C; --c1f: #FFB3A2;
+    --c2: #EDB350; --c2s: #372B15; --c2f: #F6CE8A;
+    --c3: #A78BF2; --c3s: #2A2442; --c3f: #C3B0F7;
+    --c4: #4FCFBD; --c4s: #143430; --c4f: #86E2D5;
+    --c5: #F07FAC; --c5s: #3A1F2B; --c5f: #F7A9C6;
+    --c6: #7BA8EF; --c6s: #1A2742; --c6f: #A6C5F5;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131020;
+  --surface: #1C1830;
+  --surface-2: #241F3C;
+  --ink: #EDEAF7;
+  --ink-soft: #B3ACCE;
+  --ink-faint: #7D769B;
+  --border: #322B4E;
+  --accent: #9B8AF5;
+  --accent-strong: #BCADFF;
+  --accent-soft: #2A2350;
+  --vote: #FF8F79;
+  --vote-soft: #3A211C;
+  --danger: #FF9A90;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.35);
+  --c1: #FF8F79; --c1s: #3A211C; --c1f: #FFB3A2;
+  --c2: #EDB350; --c2s: #372B15; --c2f: #F6CE8A;
+  --c3: #A78BF2; --c3s: #2A2442; --c3f: #C3B0F7;
+  --c4: #4FCFBD; --c4s: #143430; --c4f: #86E2D5;
+  --c5: #F07FAC; --c5s: #3A1F2B; --c5f: #F7A9C6;
+  --c6: #7BA8EF; --c6s: #1A2742; --c6f: #A6C5F5;
+}
+
+.hue-1 { --th: var(--c1); --ths: var(--c1s); --thf: var(--c1f); }
+.hue-2 { --th: var(--c2); --ths: var(--c2s); --thf: var(--c2f); }
+.hue-3 { --th: var(--c3); --ths: var(--c3s); --thf: var(--c3f); }
+.hue-4 { --th: var(--c4); --ths: var(--c4s); --thf: var(--c4f); }
+.hue-5 { --th: var(--c5); --ths: var(--c5s); --thf: var(--c5f); }
+.hue-6 { --th: var(--c6); --ths: var(--c6s); --thf: var(--c6f); }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Figtree', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, .display {
+  font-family: 'Bricolage Grotesque', 'Figtree', ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+  margin: 0;
+  text-wrap: balance;
+  letter-spacing: -.015em;
+}
+.mono { font-family: 'DM Mono', ui-monospace, SFMono-Regular, monospace; font-variant-numeric: tabular-nums; }
+button, input { font-family: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+.wrap { max-width: 780px; margin: 0 auto; padding: 26px 18px 90px; }
+
+/* ---------- gate ---------- */
+.gate-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 18px; }
+.gate {
+  width: 100%; max-width: 430px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 30px 28px 26px; box-shadow: var(--shadow);
+}
+.gate .dots { display: flex; gap: 6px; margin-bottom: 18px; }
+.gate .dots i { width: 13px; height: 13px; border-radius: 50%; display: block; }
+.gate h1 { font-size: 30px; line-height: 1.1; }
+.gate .sub { color: var(--ink-soft); font-size: 15px; margin: 10px 0 22px; }
+.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.field label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-faint); font-weight: 600; }
+.field input {
+  padding: 11px 13px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--bg); font-size: 15.5px;
+}
+.field input:focus { border-color: var(--accent); }
+.field .hint { font-size: 12.5px; color: var(--ink-faint); }
+.field .err { font-size: 12.5px; color: var(--danger); font-weight: 600; }
+.gate .btn { width: 100%; justify-content: center; margin-top: 6px; }
+.gate .fineprint { margin-top: 16px; font-size: 12.5px; color: var(--ink-faint); line-height: 1.45; }
+
+/* ---------- header ---------- */
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+.brand h1 { font-size: 30px; line-height: 1.05; }
+.brand .rule { display: flex; gap: 4px; margin: 9px 0 9px; }
+.brand .rule i { height: 5px; width: 30px; border-radius: 3px; display: block; }
+.brand p { margin: 0; color: var(--ink-soft); font-size: 14.5px; max-width: 48ch; }
+.me {
+  display: flex; align-items: center; gap: 9px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 8px 10px 8px 12px; box-shadow: var(--shadow-sm); max-width: 100%;
+}
+.avatar {
+  width: 34px; height: 34px; border-radius: 10px; flex: none; display: grid; place-items: center;
+  font-weight: 800; font-size: 13.5px; background: var(--ths, var(--accent-soft)); color: var(--thf, var(--accent-strong));
+}
+.me .who { min-width: 0; }
+.me .who b { display: block; font-size: 14px; line-height: 1.2; }
+.me .who span { display: block; font-size: 11.5px; color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+
+/* ---------- how to ---------- */
+.howto {
+  margin-top: 20px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 13px 16px 15px; box-shadow: var(--shadow-sm);
+}
+.howto.closed { padding-bottom: 13px; }
+.howto-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+  background: none; border: none; padding: 0; cursor: pointer; text-align: left;
+}
+.howto-toggle .chev { font-size: 12px; font-weight: 700; color: var(--accent); }
+.howto-toggle:hover .chev { text-decoration: underline; }
+.steps { margin: 11px 0 0; padding: 0 0 0 22px; display: flex; flex-direction: column; gap: 7px; }
+.steps li { font-size: 14px; color: var(--ink-soft); }
+.steps li::marker { color: var(--accent); font-weight: 800; }
+.steps b { color: var(--ink); font-weight: 800; }
+.hier {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  margin: 7px 0; padding: 6px 11px; border-radius: 9px;
+  background: var(--accent-soft); font-size: 13px; width: fit-content; max-width: 100%;
+}
+.hier b { color: var(--accent-strong); font-weight: 800; }
+.hier i { color: var(--accent); font-style: normal; font-weight: 700; }
+.hier.ex {
+  background: var(--surface-2); color: var(--ink-soft); font-style: italic; margin-bottom: 9px;
+}
+.hier.ex i { color: var(--ink-faint); font-style: normal; }
+
+/* ---------- toolbar ---------- */
+.toolbar { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+.search {
+  display: flex; align-items: center; gap: 9px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 0 12px; box-shadow: var(--shadow-sm);
+}
+.search svg { flex: none; color: var(--ink-faint); }
+.search input { flex: 1; border: none; background: transparent; padding: 12px 0; font-size: 15px; }
+.search input:focus { outline: none; }
+.search .clear { border: none; background: transparent; color: var(--ink-faint); cursor: pointer; font-size: 18px; line-height: 1; padding: 4px 2px; }
+.search .clear:hover { color: var(--ink); }
+
+form.inline { display: flex; gap: 8px; }
+form.inline input[type="text"] {
+  flex: 1; min-width: 0; padding: 11px 13px; border-radius: 11px; border: 1px solid var(--border);
+  background: var(--surface); font-size: 14.5px;
+}
+form.inline input[type="text"]:focus { border-color: var(--accent); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: var(--surface);
+  padding: 10px 15px; border-radius: 11px; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+:root[data-theme="dark"] .btn.primary, :root:not([data-theme="light"]) .btn.primary { color: #14102A; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .btn.primary { color: #fff; } }
+.btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn.small { padding: 8px 12px; font-size: 13.5px; border-radius: 10px; }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--ink-faint); font-weight: 600; padding: 6px 9px; }
+.btn.ghost:hover { color: var(--ink); background: var(--surface-2); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.notice { margin-top: 8px; font-size: 13.5px; border-radius: 10px; padding: 9px 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.notice.error { background: var(--vote-soft); color: var(--ink); border: 1px solid var(--vote); }
+.notice.warn { background: var(--accent-soft); color: var(--ink); border: 1px solid var(--accent); }
+.notice b { font-weight: 800; }
+
+.banner { margin: 16px 0 0; padding: 11px 14px; border-radius: 12px; font-size: 13.5px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink-soft); }
+
+/* ---------- stats + trending ---------- */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-top: 22px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 11px 12px; box-shadow: var(--shadow-sm); }
+.stat .n { font-size: 21px; font-weight: 500; line-height: 1.15; }
+.stat .l { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-faint); margin-top: 2px; font-weight: 600; }
+.stat:nth-child(1) .n { color: var(--c3); }
+.stat:nth-child(2) .n { color: var(--c4); }
+.stat:nth-child(3) .n { color: var(--c1); }
+.stat:nth-child(4) .n { color: var(--c6); }
+
+.eyebrow { font-size: 11.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--ink-faint); font-weight: 700; }
+
+.trending { margin-top: 24px; }
+.trend-list { display: flex; flex-direction: column; gap: 7px; margin-top: 9px; }
+.trend-item {
+  display: flex; align-items: center; gap: 11px; background: var(--surface); border: 1px solid var(--border);
+  border-left: 4px solid var(--th); border-radius: 11px; padding: 9px 13px; font-size: 14.5px;
+}
+.trend-rank { font-family: 'DM Mono', monospace; color: var(--th); font-size: 13px; }
+.trend-name { flex: 1; font-weight: 700; min-width: 0; }
+.trend-theme { color: var(--ink-faint); font-size: 12.5px; font-weight: 500; }
+.trend-votes { color: var(--vote); font-weight: 800; font-family: 'DM Mono', monospace; }
+
+/* ---------- themes ---------- */
+.board { margin-top: 34px; display: flex; flex-direction: column; gap: 30px; }
+.theme-block { border-left: 4px solid var(--th); padding-left: 15px; }
+.theme-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.theme-head h3 { font-size: 21px; color: var(--th); }
+.theme-meta { font-size: 12px; color: var(--ink-faint); font-weight: 500; }
+.theme-tools { margin: 11px 0 14px; }
+
+.subjects { display: flex; flex-direction: column; gap: 11px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 15px; padding: 15px 17px; box-shadow: var(--shadow); }
+.card.scheduled { opacity: .68; }
+.card-top { display: flex; align-items: flex-start; gap: 13px; }
+.card-main { flex: 1; min-width: 0; }
+.card-main h4 { font-family: 'Figtree', sans-serif; font-size: 16.5px; font-weight: 800; margin: 0; letter-spacing: -.005em; }
+.byline { font-size: 12px; color: var(--ink-faint); margin-top: 3px; }
+.byline b { color: var(--ink-soft); font-weight: 700; }
+.badge { display: inline-block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; background: var(--ths); color: var(--thf); padding: 3px 9px; border-radius: 999px; font-weight: 800; margin-left: 7px; vertical-align: 2px; }
+
+.vote-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; flex: none;
+  min-width: 58px; padding: 7px 10px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--ink-soft);
+  transition: background .12s, border-color .12s, color .12s;
+}
+.vote-btn:hover { border-color: var(--vote); color: var(--vote); }
+.vote-btn .n { font-family: 'DM Mono', monospace; font-size: 18px; line-height: 1.1; }
+.vote-btn .t { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+.vote-btn.on { background: var(--vote-soft); border-color: var(--vote); color: var(--vote); }
+
+.q-head { margin-top: 13px; }
+.questions { list-style: none; margin: 7px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.questions li { font-size: 14.5px; padding-left: 15px; position: relative; }
+.questions li::before { content: ""; position: absolute; left: 0; top: .62em; width: 6px; height: 6px; border-radius: 50%; background: var(--th); }
+.q-author { color: var(--ink-faint); font-size: 12px; }
+.empty-hint { color: var(--ink-faint); font-size: 13.5px; margin: 7px 0 0; }
+
+.helpers { margin-top: 13px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.chips { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+.chip {
+  background: var(--ths); color: var(--thf); border: 1px solid transparent;
+  border-radius: 10px; padding: 7px 12px; font-size: 13px; font-weight: 800;
+  font-family: inherit; line-height: 1.25; cursor: pointer;
+}
+.chip:hover { border-color: var(--th); }
+.chip.plain { cursor: default; }
+.chip.plain:hover { border-color: transparent; }
+
+.person {
+  background: none; border: none; padding: 0; font: inherit; color: var(--ink-soft);
+  font-weight: 700; cursor: pointer; border-bottom: 1px dotted var(--ink-faint);
+}
+.person:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.person.plain { cursor: default; border-bottom: none; }
+.q-author .person { font-weight: 600; color: var(--ink-faint); }
+.q-author .person:hover { color: var(--accent); }
+.theme-meta .person { font-weight: 600; color: var(--ink-faint); font-size: inherit; }
+.theme-meta .person:hover { color: var(--accent); }
+.chip-btn {
+  border: 1px dashed var(--border); background: transparent; color: var(--ink-soft);
+  border-radius: 10px; padding: 8px 12px; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.chip-btn:hover { border-color: var(--th); color: var(--th); }
+.chip-btn.on { border-style: solid; border-color: var(--th); color: var(--thf); background: var(--ths); }
+
+.card-footer { display: flex; justify-content: flex-end; margin-top: 9px; }
+
+.empty-state { text-align: center; padding: 44px 20px; color: var(--ink-faint); border: 1px dashed var(--border); border-radius: 16px; }
+.empty-state h3 { color: var(--ink-soft); font-size: 18px; margin-bottom: 7px; }
+.export-line {
+  margin: 7px 0 0; text-align: center; font-size: 11.5px; color: var(--ink-faint);
+  display: flex; justify-content: center; align-items: center; gap: 8px;
+}
+.export-line .sep { opacity: .55; }
+.linkish {
+  background: none; border: none; padding: 0; font: inherit; color: var(--ink-faint);
+  cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px;
+}
+.linkish:hover { color: var(--accent); text-decoration-style: solid; }
+
+.footer-note { margin-top: 46px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--ink-faint); text-align: center; }
+.footer-note a { color: var(--accent); font-weight: 700; text-decoration: none; border-bottom: 1px solid transparent; }
+.footer-note a:hover { border-bottom-color: var(--accent); }
+
+#pmx-toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+  background: var(--ink); color: var(--bg); padding: 11px 17px; border-radius: 999px;
+  font-size: 13.5px; font-weight: 600; box-shadow: var(--shadow); z-index: 999; max-width: 88vw; text-align: center;
+}
+
+@media (max-width: 560px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .brand h1 { font-size: 26px; }
+  form.inline { flex-wrap: wrap; }
+  form.inline input[type="text"] { flex-basis: 100%; }
+}
+.banner.err { background: var(--vote-soft); border-color: var(--vote); color: var(--ink); }
+.banner .linkish { color: var(--vote); font-weight: 700; }
+#pmx-saving {
+  position: fixed; right: 14px; bottom: 14px; z-index: 998;
+  background: var(--surface); border: 1px solid var(--border); color: var(--ink-faint);
+  padding: 6px 13px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  box-shadow: var(--shadow);
+}
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(function () {
+  "use strict";
+
+  var HUES = 6;
+  var state = { themes: [] };
+  var ui = { search: "", notices: {} };
+  var me = null;
+  var API_URL = "https://script.google.com/macros/s/AKfycbzJaOmd08XIhdD8Anlms3otABsvKB0CXAHmzV_uYOxwNx7O0PlKO3GfB5sosS6vt9JFXw/exec";
+  var isReadOnly = false;
+  var netError = false;
+  var loading = true;
+  var pending = 0;
+  var queue = Promise.resolve();
+  var toastTimer = null;
+
+  /* ---------------- helpers ---------------- */
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  function norm(s) {
+    return String(s || "")
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+  function tokens(s) {
+    var stop = { de: 1, da: 1, do: 1, das: 1, dos: 1, e: 1, a: 1, o: 1, as: 1, os: 1, em: 1, no: 1, na: 1, para: 1, com: 1, um: 1, uma: 1 };
+    return norm(s).split(" ").filter(function (w) { return w.length > 2 && !stop[w]; });
+  }
+  function similarity(a, b) {
+    var ta = tokens(a), tb = tokens(b);
+    if (!ta.length || !tb.length) return 0;
+    var setB = {}, hits = 0;
+    tb.forEach(function (w) { setB[w] = 1; });
+    ta.forEach(function (w) { if (setB[w]) hits++; });
+    return hits / Math.max(ta.length, tb.length);
+  }
+  function isEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || "").trim()); }
+  function emailKey(s) { return String(s || "").trim().toLowerCase(); }
+  function initials(name) {
+    var parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "?";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  function person(p) {
+    if (!p) return { name: "", email: "" };
+    if (typeof p === "string") return { name: p, email: "" };
+    return { name: p.name || "", email: p.email || "" };
+  }
+  function hasMe(list) {
+    if (!me) return false;
+    return (list || []).some(function (p) { return emailKey(person(p).email) === emailKey(me.email); });
+  }
+
+  /* ---------------- identity ---------------- */
+
+  function loadMe() {
+    try {
+      var raw = localStorage.getItem("pmx_me");
+      if (!raw) return null;
+      var p = JSON.parse(raw);
+      if (p && p.name && isEmail(p.email)) return { name: p.name, email: p.email };
+    } catch (e) {}
+    return null;
+  }
+  function saveMe(p) {
+    try { localStorage.setItem("pmx_me", JSON.stringify(p)); } catch (e) {}
+  }
+  function clearMe() {
+    try { localStorage.removeItem("pmx_me"); } catch (e) {}
+  }
+  function howtoIsOpen() {
+    try { return localStorage.getItem("pmx_howto") !== "0"; } catch (e) { return true; }
+  }
+  function setHowtoOpen(open) {
+    try { localStorage.setItem("pmx_howto", open ? "1" : "0"); } catch (e) {}
+  }
+
+  function copyText(text, okMsg) {
+    var msg = okMsg || "Copiado.";
+    function fallback() {
+      try {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.cssText = "position:fixed;top:-1000px;opacity:0";
+        document.body.appendChild(ta);
+        ta.select();
+        var ok = document.execCommand("copy");
+        ta.remove();
+        toast(ok ? msg : "Não deu para copiar automaticamente. Selecione e copie na mão.");
+      } catch (e) { toast("Não deu para copiar automaticamente."); }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast(msg); }).catch(fallback);
+    } else fallback();
+  }
+
+  /* ---------------- state ---------------- */
+
+  function normalizeState(parsed) {
+    if (!parsed || !Array.isArray(parsed.themes)) parsed = { themes: [] };
+    parsed.themes.forEach(function (t, i) {
+      if (typeof t.hue !== "number") t.hue = i % HUES;
+      t.author = person(t.author);
+      t.subjects = (t.subjects || []).map(function (s) {
+        return {
+          id: s.id || uid(),
+          name: s.name || "",
+          author: person(s.author),
+          questions: (s.questions || []).map(function (q) {
+            return { id: q.id || uid(), text: q.text || "", author: person(q.author) };
+          }),
+          experts: (s.experts || []).map(person),
+          voters: (s.voters || []).map(person),
+          scheduled: !!s.scheduled
+        };
+      });
+    });
+    return parsed;
+  }
+  function cloneState() { return JSON.parse(JSON.stringify(state)); }
+  function findTheme(st, id) { return (st.themes || []).filter(function (t) { return t.id === id; })[0]; }
+  function findSubject(t, id) { return (t.subjects || []).filter(function (s) { return s.id === id; })[0]; }
+  function votes(s) { return (s.voters || []).length; }
+  function isTemp(id) { return String(id || "").indexOf("tmp_") === 0; }
+  function themeIdOfSubject(st, subjectId) {
+    var found = null;
+    (st.themes || []).forEach(function (t) {
+      (t.subjects || []).forEach(function (s) { if (s.id === subjectId) found = t.id; });
+    });
+    return found;
+  }
+
+  /* ---------------- search ---------------- */
+
+  function subjectMatches(s, q) {
+    if (norm(s.name).indexOf(q) !== -1) return true;
+    if (norm(person(s.author).name).indexOf(q) !== -1) return true;
+    if (emailKey(person(s.author).email).indexOf(q) !== -1) return true;
+    var inQ = (s.questions || []).some(function (x) {
+      return norm(x.text).indexOf(q) !== -1 || norm(person(x.author).name).indexOf(q) !== -1 || emailKey(person(x.author).email).indexOf(q) !== -1;
+    });
+    if (inQ) return true;
+    return (s.experts || []).some(function (x) {
+      return norm(person(x).name).indexOf(q) !== -1 || emailKey(person(x).email).indexOf(q) !== -1;
+    });
+  }
+  function filteredThemes(st, rawQuery) {
+    var q = norm(rawQuery);
+    if (!q) return (st.themes || []).map(function (t) { return { theme: t, subjects: sortSubjects(t.subjects || []) }; });
+    var out = [];
+    (st.themes || []).forEach(function (t) {
+      var themeHit = norm(t.name).indexOf(q) !== -1;
+      var subs = (t.subjects || []).filter(function (s) { return themeHit || subjectMatches(s, q); });
+      if (subs.length || themeHit) out.push({ theme: t, subjects: sortSubjects(subs) });
+    });
+    return out;
+  }
+  function sortSubjects(subs) {
+    return subs.slice().sort(function (a, b) {
+      if (!!a.scheduled !== !!b.scheduled) return a.scheduled ? 1 : -1;
+      return votes(b) - votes(a);
+    });
+  }
+  function trending(st) {
+    var all = [];
+    (st.themes || []).forEach(function (t) {
+      (t.subjects || []).forEach(function (s) { if (!s.scheduled && votes(s) > 0) all.push({ t: t, s: s }); });
+    });
+    all.sort(function (a, b) { return votes(b.s) - votes(a.s); });
+    return all.slice(0, 3);
+  }
+
+  /* ---------------- render: gate ---------------- */
+
+  function renderGate(err) {
+    var e = err || {};
+    return '<div class="gate-wrap"><div class="gate">' +
+      '<div class="dots">' +
+        '<i style="background:var(--c1)"></i><i style="background:var(--c2)"></i><i style="background:var(--c3)"></i>' +
+        '<i style="background:var(--c4)"></i><i style="background:var(--c5)"></i><i style="background:var(--c6)"></i>' +
+      '</div>' +
+      '<h1>Mural dos PMs</h1>' +
+      '<p class="sub">Um espaço para dizer no que você precisa de ajuda, se oferecer para ajudar em outros temas e votar no que o grupo deve destrinchar primeiro.</p>' +
+      '<form data-form="enter">' +
+        '<div class="field"><label for="g-name">Seu nome</label>' +
+        '<input id="g-name" type="text" name="name" maxlength="40" autocomplete="name" placeholder="Nome e sobrenome" value="' + esc(e.name || "") + '" />' +
+        (e.nameErr ? '<span class="err">' + esc(e.nameErr) + '</span>' : '') + '</div>' +
+        '<div class="field"><label for="g-email">Seu e-mail</label>' +
+        '<input id="g-email" type="email" name="email" maxlength="80" autocomplete="email" placeholder="voce@empresa.com" value="' + esc(e.email || "") + '" />' +
+        (e.emailErr ? '<span class="err">' + esc(e.emailErr) + '</span>' : '') + '</div>' +
+        '<button class="btn primary" type="submit">Entrar no mural</button>' +
+      '</form>' +
+      '<p class="fineprint">Seus dados ficam salvos só no seu navegador e aparecem no mural junto do que você publicar.</p>' +
+    '</div></div>';
+  }
+
+  /* ---------------- render: board ---------------- */
+
+  function noticeHtml(key) {
+    var n = ui.notices[key];
+    if (!n) return "";
+    if (n.kind === "error") {
+      return '<div class="notice error">' + n.html + '</div>';
+    }
+    return '<div class="notice warn">' + n.html +
+      '<button class="btn small" data-action="force" data-key="' + esc(key) + '">Adicionar mesmo assim</button>' +
+      '<button class="btn ghost small" data-action="dismiss-notice" data-key="' + esc(key) + '">Cancelar</button></div>';
+  }
+
+  function personHtml(p) {
+    var pp = person(p);
+    if (!pp.name) return "";
+    if (!pp.email) return '<span class="person plain">' + esc(pp.name) + '</span>';
+    return '<button type="button" class="person" data-action="copy-email" data-email="' + esc(pp.email) + '" ' +
+      'title="' + esc(pp.email) + ' — clique para copiar">' + esc(pp.name) + '</button>';
+  }
+
+  function chipHtml(p) {
+    var pp = person(p);
+    if (!pp.email) return '<span class="chip plain">' + esc(pp.name) + '</span>';
+    return '<button type="button" class="chip" data-action="copy-email" data-email="' + esc(pp.email) + '" ' +
+      'title="' + esc(pp.email) + ' — clique para copiar">' + esc(pp.name) + '</button>';
+  }
+
+  function renderSubject(t, s, opts) {
+    var n = votes(s);
+    var voted = !opts.neutral && hasMe(s.voters);
+    var helping = !opts.neutral && hasMe(s.experts);
+    var ro = isReadOnly;
+
+    var voteBtn = '<button class="vote-btn' + (voted ? ' on' : '') + '" data-action="vote" data-t="' + s.id + '" data-th="' + t.id + '"' +
+      (ro ? ' disabled' : '') + ' aria-pressed="' + (voted ? "true" : "false") + '" title="' + (voted ? "Remover meu voto" : "Também preciso disso") + '">' +
+      '<span class="n mono">' + n + '</span><span class="t">' + (voted ? "votado" : "votar") + '</span></button>';
+
+    var author = person(s.author);
+    var byline = author.name ? '<div class="byline">sugerido por ' + personHtml(author) + '</div>' : '';
+
+    var qs = s.questions || [];
+    var qList = qs.length
+      ? '<ul class="questions">' + qs.map(function (q) {
+          return '<li>' + esc(q.text) + ' <span class="q-author">— ' + personHtml(q.author) + '</span></li>';
+        }).join("") + '</ul>'
+      : '<p class="empty-hint">Ainda sem dúvidas. Escreva o que está te travando neste assunto.</p>';
+
+    var qKey = "q:" + s.id;
+    var qForm = ro ? "" :
+      '<form class="inline" data-form="add-question" data-th="' + t.id + '" data-t="' + s.id + '" style="margin-top:9px">' +
+      '<input type="text" name="text" data-focus-key="' + esc(qKey) + '" placeholder="Qual é a sua dúvida aqui?" maxlength="220" required />' +
+      '<button class="btn small" type="submit">Adicionar</button></form>' + noticeHtml(qKey);
+
+    var experts = s.experts || [];
+    var helperBtn = ro ? "" :
+      '<button class="chip-btn' + (helping ? ' on' : '') + '" data-action="help" data-th="' + t.id + '" data-t="' + s.id + '">' +
+      (helping ? "✓ Você pode ajudar" : "+ Posso ajudar") + '</button>';
+
+    var schedBtn = ro ? "" :
+      '<button class="btn ghost small" data-action="sched" data-th="' + t.id + '" data-t="' + s.id + '">' +
+      (s.scheduled ? "Reabrir assunto" : "Marcar encontro agendado") + '</button>';
+
+    return '<article class="card' + (s.scheduled ? ' scheduled' : '') + '">' +
+      '<div class="card-top"><div class="card-main">' +
+        '<h4>' + esc(s.name) + (s.scheduled ? '<span class="badge">Encontro marcado</span>' : '') + '</h4>' + byline +
+      '</div>' + voteBtn + '</div>' +
+      '<div class="q-head"><span class="eyebrow">Dúvidas (' + qs.length + ')</span></div>' + qList + qForm +
+      '<div class="helpers"><span class="eyebrow">Quem pode ajudar (' + experts.length + ')</span>' +
+        '<div class="chips">' + experts.map(chipHtml).join("") + helperBtn + '</div></div>' +
+      '<div class="card-footer">' + schedBtn + '</div>' +
+    '</article>';
+  }
+
+  function renderThemeBlock(entry, opts) {
+    var t = entry.theme, subs = entry.subjects;
+    var sKey = "s:" + t.id;
+    var total = (t.subjects || []).length;
+    var open = (t.subjects || []).filter(function (s) { return !s.scheduled; }).length;
+    var ta = person(t.author);
+
+    var addForm = isReadOnly ? "" :
+      '<div class="theme-tools"><form class="inline" data-form="add-subject" data-th="' + t.id + '">' +
+      '<input type="text" name="name" data-focus-key="' + esc(sKey) + '" placeholder="Novo assunto em “' + esc(t.name) + '”…" maxlength="90" required />' +
+      '<button class="btn small" type="submit">Adicionar assunto</button></form>' + noticeHtml(sKey) + '</div>';
+
+    var body = subs.length
+      ? '<div class="subjects">' + subs.map(function (s) { return renderSubject(t, s, opts); }).join("") + '</div>'
+      : '<p class="empty-hint">' + (ui.search ? "Nenhum assunto deste tema bate com a busca." : "Nenhum assunto por aqui ainda.") + '</p>';
+
+    return '<section class="theme-block hue-' + ((t.hue || 0) % HUES + 1) + '">' +
+      '<div class="theme-head"><h3>' + esc(t.name) + '</h3>' +
+      '<span class="theme-meta">' + open + ' aberto' + (open === 1 ? "" : "s") + ' · ' + total + ' no total' +
+      (ta.name ? ' · criado por ' + personHtml(ta) : '') + '</span></div>' +
+      addForm + body +
+    '</section>';
+  }
+
+  function renderBoard(st, opts) {
+    opts = opts || {};
+    var themes = st.themes || [];
+    var totalSubjects = 0, totalVotes = 0, openSubjects = 0, people = {};
+    themes.forEach(function (t) {
+      if (person(t.author).email) people[emailKey(person(t.author).email)] = 1;
+      (t.subjects || []).forEach(function (s) {
+        totalSubjects++;
+        totalVotes += votes(s);
+        if (!s.scheduled) openSubjects++;
+        if (person(s.author).email) people[emailKey(person(s.author).email)] = 1;
+        (s.voters || []).forEach(function (p) { if (person(p).email) people[emailKey(person(p).email)] = 1; });
+        (s.experts || []).forEach(function (p) { if (person(p).email) people[emailKey(person(p).email)] = 1; });
+        (s.questions || []).forEach(function (q) { if (person(q.author).email) people[emailKey(person(q.author).email)] = 1; });
+      });
+    });
+
+    var meBox = (!opts.neutral && me)
+      ? '<div class="me hue-' + ((initials(me.name).charCodeAt(0) % HUES) + 1) + '">' +
+          '<span class="avatar">' + esc(initials(me.name)) + '</span>' +
+          '<span class="who"><b>' + esc(me.name) + '</b><span>' + esc(me.email) + '</span></span>' +
+          '<button class="btn ghost small" data-action="switch-user" title="Trocar de pessoa">Trocar</button>' +
+        '</div>'
+      : '';
+
+    var banner = "";
+    if (opts.neutral) banner = "";
+    else if (loading) banner = '<div class="banner">Carregando o mural…</div>';
+    else if (netError) banner = '<div class="banner err">Não estou conseguindo falar com a planilha. O que você fizer agora pode não ser salvo. <button type="button" class="linkish" data-action="retry">tentar de novo</button></div>';
+
+    var searchVal = opts.neutral ? "" : ui.search;
+    var searchBox = '<div class="search">' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.2-3.2"></path></svg>' +
+      '<input type="text" data-role="search" placeholder="Confira se sua dúvida ou tema já existe…" value="' + esc(searchVal) + '" aria-label="Buscar" />' +
+      (searchVal ? '<button class="clear" data-action="clear-search" aria-label="Limpar busca">×</button>' : '') +
+    '</div>';
+
+    var tKey = "theme";
+    var addTheme = isReadOnly ? "" :
+      '<form class="inline" data-form="add-theme">' +
+      '<input type="text" name="name" data-focus-key="' + esc(tKey) + '" placeholder="Novo tema — ex.: Descoberta, Priorização, Métricas…" maxlength="60" required />' +
+      '<button class="btn primary small" type="submit">Criar tema</button></form>' + noticeHtml(tKey);
+
+    var stats = '<div class="stats">' +
+      '<div class="stat" title="Grandes áreas criadas no mural."><div class="n mono">' + themes.length + '</div><div class="l">Temas</div></div>' +
+      '<div class="stat" title="Assuntos que ainda não viraram encontro."><div class="n mono">' + openSubjects + '</div><div class="l">Assuntos abertos</div></div>' +
+      '<div class="stat" title="Soma dos votos dados em todos os assuntos."><div class="n mono">' + totalVotes + '</div><div class="l">Votos</div></div>' +
+      '<div class="stat" title="E-mails diferentes que já criaram um tema, sugeriram um assunto, escreveram uma dúvida, votaram ou se ofereceram para ajudar."><div class="n mono">' + Object.keys(people).length + '</div><div class="l">Pessoas</div></div>' +
+    '</div>';
+
+    var tr = trending(st);
+    var trendHtml = tr.length ? '<div class="trending"><span class="eyebrow">Em alta agora</span><div class="trend-list">' +
+      tr.map(function (x, i) {
+        return '<div class="trend-item hue-' + ((x.t.hue || 0) % HUES + 1) + '">' +
+          '<span class="trend-rank mono">' + (i + 1) + '</span>' +
+          '<span class="trend-name">' + esc(x.s.name) + ' <span class="trend-theme">· ' + esc(x.t.name) + '</span></span>' +
+          '<span class="trend-votes mono">' + votes(x.s) + '</span></div>';
+      }).join("") + '</div></div>' : "";
+
+    var howtoOpen = opts.neutral ? true : howtoIsOpen();
+    var howto = '<section class="howto' + (howtoOpen ? '' : ' closed') + '">' +
+      '<button type="button" class="howto-toggle" data-action="toggle-howto" aria-expanded="' + (howtoOpen ? "true" : "false") + '">' +
+        '<span class="eyebrow">Como usar o mural</span><span class="chev">' + (howtoOpen ? "Esconder" : "Mostrar") + '</span>' +
+      '</button>' +
+      (howtoOpen ? '<ol class="steps">' +
+        '<li><b>Busque antes de criar.</b> Sua dúvida pode já estar no mural. Se estiver, vote nela e adicione seus questionamentos — voto é o que define o assunto do próximo encontro.</li>' +
+        '<li><b>Não achou? Adicione.</b> O mural tem três níveis, do mais amplo ao mais específico:' +
+          '<span class="hier"><b>Tema</b><i>›</i><b>Assunto</b><i>›</i><b>Dúvida</b></span>' +
+          '<span class="hier ex">Claude<i>›</i>Criação de skills<i>›</i>“Como testo antes de publicar?”</span>' +
+          'Comece pelo tema: se já existir, é só adicionar seu assunto dentro dele.</li>' +
+        '<li><b>Escreva suas dúvidas dentro do assunto.</b> É isso que faz quem for ajudar chegar no encontro já sabendo o que responder, em vez de começar do zero.</li>' +
+        '<li><b>Marque “posso ajudar”</b> nos assuntos que você domina. Os mais votados viram encontro primeiro.</li>' +
+      '</ol>' : '') +
+    '</section>';
+
+    return '<div class="wrap">' +
+      '<header class="topbar"><div class="brand"><h1>Mural dos PMs</h1>' +
+        '<div class="rule"><i style="background:var(--c1)"></i><i style="background:var(--c2)"></i><i style="background:var(--c3)"></i><i style="background:var(--c4)"></i><i style="background:var(--c5)"></i><i style="background:var(--c6)"></i></div>' +
+        '<p>Diga no que precisa de ajuda, ofereça o que você domina e vote nos assuntos que o grupo deve encarar primeiro.</p></div>' +
+        meBox + '</header>' +
+      howto + banner +
+      '<div class="toolbar">' + searchBox + '</div>' +
+      stats +
+      '<div class="toolbar">' + addTheme + '</div>' +
+      trendHtml +
+      '<div class="board" id="board-body">' + renderBoardBody(st, opts) + '</div>' +
+      '<p class="footer-note">Feito com 🧡 por <a href="https://www.linkedin.com/in/amandatuyang/" target="_blank" rel="noopener noreferrer">Amanda Tuyama</a> e o Claudinho dela.</p>' +
+      '<p class="export-line">' +
+        '<button type="button" class="linkish" data-action="export-csv" title="Baixa uma planilha com uma linha por dúvida">exportar planilha</button>' +
+        '<span class="sep">·</span>' +
+        '<button type="button" class="linkish" data-action="export-md" title="Copia a mesma tabela para colar em qualquer lugar">copiar tabela</button>' +
+      '</p>' +
+    '</div>';
+  }
+
+  function renderBoardBody(st, opts) {
+    opts = opts || {};
+    var q = opts.neutral ? "" : ui.search;
+    var entries = filteredThemes(st, q);
+    if (!entries.length) {
+      if (q) return '<div class="empty-state"><h3>Nada encontrado</h3><p>Nenhum tema, assunto, dúvida ou pessoa bate com “' + esc(q) + '”.</p></div>';
+      return '<div class="empty-state"><h3>O mural está vazio</h3><p>Crie o primeiro tema lá em cima — algo em que você ou o grupo precisa de ajuda.</p></div>';
+    }
+    return entries.map(function (e) { return renderThemeBlock(e, opts); }).join("");
+  }
+
+  function render(st, opts) {
+    opts = opts || {};
+    if (!opts.neutral && !me) return renderGate(ui.gateErr);
+    return renderBoard(st, opts);
+  }
+
+  /* ---------------- export ---------------- */
+
+  var EXPORT_HEADERS = ["Tema", "Assunto", "Status", "Votos", "Sugerido por", "Dúvida", "Quem perguntou", "Quem pode ajudar", "Quem votou"];
+
+  function fmtPerson(p) {
+    var pp = person(p);
+    if (!pp.name) return "";
+    return pp.email ? pp.name + " <" + pp.email + ">" : pp.name;
+  }
+
+  function exportRows(st) {
+    var rows = [];
+    (st.themes || []).forEach(function (t) {
+      (t.subjects || []).forEach(function (s) {
+        var status = s.scheduled ? "Encontro marcado" : "Aberto";
+        var votou = (s.voters || []).map(fmtPerson).join("; ");
+        var ajuda = (s.experts || []).map(fmtPerson).join("; ");
+        var sug = fmtPerson(s.author);
+        var qs = s.questions || [];
+        if (!qs.length) {
+          rows.push([t.name, s.name, status, votes(s), sug, "", "", ajuda, votou]);
+        } else {
+          qs.forEach(function (q) {
+            rows.push([t.name, s.name, status, votes(s), sug, q.text, fmtPerson(q.author), ajuda, votou]);
+          });
+        }
+      });
+    });
+    return rows;
+  }
+
+  function csvCell(v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }
+
+  function toCsv(st) {
+    var rows = exportRows(st);
+    var lines = [EXPORT_HEADERS.map(csvCell).join(";")];
+    rows.forEach(function (r) { lines.push(r.map(csvCell).join(";")); });
+    return "﻿" + lines.join("\r\n");
+  }
+
+  function mdCell(v) { return String(v == null ? "" : v).replace(/\|/g, "\\|").replace(/\s*\n\s*/g, " "); }
+
+  function toMarkdown(st) {
+    var rows = exportRows(st);
+    if (!rows.length) return "O mural ainda está vazio.";
+    var lines = ["| " + EXPORT_HEADERS.join(" | ") + " |", "|" + EXPORT_HEADERS.map(function () { return " --- "; }).join("|") + "|"];
+    rows.forEach(function (r) { lines.push("| " + r.map(mdCell).join(" | ") + " |"); });
+    return lines.join("\n");
+  }
+
+  function exportCsv() {
+    var csv = toCsv(state);
+    var rowCount = exportRows(state).length;
+    if (!rowCount) { toast("O mural ainda está vazio — nada para exportar."); return; }
+
+    function fallback(reason) {
+      copyText(csv, reason || "Download indisponível aqui — o CSV foi copiado para a área de transferência.");
+    }
+
+    try {
+      var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "mural-dos-pms.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+      toast("Planilha baixada com " + rowCount + " linha" + (rowCount === 1 ? "" : "s") + ".");
+    } catch (err) {
+      fallback();
+    }
+  }
+
+  function exportMarkdown() {
+    var rowCount = exportRows(state).length;
+    if (!rowCount) { toast("O mural ainda está vazio — nada para exportar."); return; }
+    copyText(toMarkdown(state), "Tabela copiada (" + rowCount + " linha" + (rowCount === 1 ? "" : "s") + "). É só colar.");
+  }
+
+  /* ---------------- publish ---------------- */
+
+  function toast(msg) {
+    var old = document.getElementById("pmx-toast");
+    if (old) old.remove();
+    var t = document.createElement("div");
+    t.id = "pmx-toast";
+    t.textContent = msg;
+    document.body.appendChild(t);
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.remove(); }, 3400);
+  }
+
+  function apiGet() {
+    return fetch(API_URL, { method: "GET" }).then(function (r) { return r.json(); });
+  }
+
+  function apiPost(body) {
+    return fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(body)
+    }).then(function (r) { return r.json(); });
+  }
+
+  function isTyping() {
+    var el = document.activeElement;
+    return !!(el && el.tagName === "INPUT" && el.value);
+  }
+
+  function updateSaving() {
+    var el = document.getElementById("pmx-saving");
+    if (pending > 0) {
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "pmx-saving";
+        el.textContent = "salvando…";
+        document.body.appendChild(el);
+      }
+    } else if (el) el.remove();
+  }
+
+  function refresh(silent) {
+    return apiGet().then(function (res) {
+      if (!res || !res.ok) throw new Error((res && res.error) || "resposta inválida");
+      var next = normalizeState(res.state);
+      var changed = JSON.stringify(next) !== JSON.stringify(state);
+      var wasBlocked = loading || netError;
+      netError = false;
+      loading = false;
+      state = next;
+      if (changed || wasBlocked) {
+        if (silent && isTyping()) return;
+        paint();
+      }
+    }).catch(function () {
+      var was = netError;
+      netError = true;
+      loading = false;
+      if (!was) paint();
+    });
+  }
+
+  function sendAction(action) {
+    pending++;
+    updateSaving();
+    queue = queue.then(function () {
+      return apiPost(action).then(function (res) {
+        if (!res || !res.ok) throw new Error((res && res.error) || "erro no servidor");
+        netError = false;
+        state = normalizeState(res.state);
+        if (pending === 1) paint();
+      });
+    }).catch(function (err) {
+      netError = true;
+      toast("Não deu para salvar: " + ((err && err.message) || "sem conexão"));
+      return refresh();
+    }).then(function () {
+      pending = Math.max(0, pending - 1);
+      updateSaving();
+    });
+  }
+
+  function persist(next, focusKey, action) {
+    Object.keys(ui.notices).forEach(function (k) {
+      if (ui.notices[k].kind === "error") delete ui.notices[k];
+    });
+    state = next;
+    paint(focusKey);
+    if (action) sendAction(action);
+  }
+
+  function paint(focusKey) {
+    var app = document.getElementById("app");
+    if (!app) return;
+    app.innerHTML = render(state, {});
+    if (focusKey) {
+      var el = app.querySelector('[data-focus-key="' + focusKey + '"]');
+      if (el) el.focus();
+    }
+  }
+
+  function repaintBody() {
+    var body = document.getElementById("board-body");
+    if (!body) { paint(); return; }
+    body.innerHTML = renderBoardBody(state, {});
+    var clear = document.querySelector('[data-action="clear-search"]');
+    var box = document.querySelector(".search");
+    if (ui.search && !clear && box) {
+      var b = document.createElement("button");
+      b.className = "clear"; b.setAttribute("data-action", "clear-search");
+      b.setAttribute("aria-label", "Limpar busca"); b.textContent = "×";
+      box.appendChild(b);
+    } else if (!ui.search && clear) { clear.remove(); }
+  }
+
+  /* ---------------- duplicate checks ---------------- */
+
+  function checkDuplicate(key, value, existing, labels) {
+    var nv = norm(value);
+    var exact = existing.filter(function (x) { return norm(x) === nv; })[0];
+    if (exact) {
+      ui.notices[key] = { kind: "error", html: '<b>Já existe:</b> “' + esc(exact) + '”. ' + esc(labels.exact) };
+      return "block";
+    }
+    var near = existing
+      .map(function (x) { return { text: x, score: similarity(x, value) }; })
+      .filter(function (x) { return x.score >= 0.6; })
+      .sort(function (a, b) { return b.score - a.score; })[0];
+    if (near) {
+      ui.notices[key] = {
+        kind: "warn",
+        html: '<span>Parece muito com <b>“' + esc(near.text) + '”</b>. Quer mesmo criar um novo?</span>',
+        value: value
+      };
+      return "warn";
+    }
+    return "ok";
+  }
+
+  function passesGuard(key, value, existing, labels) {
+    var pending = ui.notices[key];
+    if (pending && pending.kind === "warn" && norm(pending.value) === norm(value)) {
+      delete ui.notices[key];
+      return true;
+    }
+    var verdict = checkDuplicate(key, value, existing, labels);
+    if (verdict === "ok") { delete ui.notices[key]; return true; }
+    return false;
+  }
+
+  /* ---------------- actions ---------------- */
+
+  function addTheme(name, force) {
+    if (!force) {
+      var existing = (state.themes || []).map(function (t) { return t.name; });
+      if (!passesGuard("theme", name, existing, { exact: "Role a página para encontrá-lo." })) { paint(); return; }
+    }
+    var hue = (state.themes || []).length % HUES;
+    var st = cloneState();
+    st.themes.push({ id: "tmp_" + uid(), name: name, hue: hue, author: me, subjects: [] });
+    persist(st, "theme", { action: "addTheme", name: name, hue: hue, person: me });
+  }
+
+  function addSubject(themeId, name, force) {
+    var key = "s:" + themeId;
+    var t0 = findTheme(state, themeId);
+    if (!t0) return;
+    if (isTemp(themeId)) { toast("Espere o tema terminar de salvar."); return; }
+    if (!force) {
+      var existing = (t0.subjects || []).map(function (s) { return s.name; });
+      if (!passesGuard(key, name, existing, { exact: "Vote nele em vez de criar outro." })) { paint(); return; }
+    }
+    var st = cloneState();
+    var t = findTheme(st, themeId);
+    if (!t) return;
+    t.subjects = t.subjects || [];
+    t.subjects.push({ id: "tmp_" + uid(), name: name, author: me, questions: [], experts: [], voters: [], scheduled: false });
+    persist(st, key, { action: "addSubject", themeId: themeId, name: name, person: me });
+  }
+
+  function addQuestion(themeId, subjectId, text, force) {
+    var key = "q:" + subjectId;
+    var t0 = findTheme(state, themeId);
+    var s0 = t0 && findSubject(t0, subjectId);
+    if (!s0) return;
+    if (isTemp(subjectId)) { toast("Espere o assunto terminar de salvar."); return; }
+    if (!force) {
+      var existing = (s0.questions || []).map(function (q) { return q.text; });
+      if (!passesGuard(key, text, existing, { exact: "Talvez alguém já tenha perguntado." })) { paint(); return; }
+    }
+    var st = cloneState();
+    var t = findTheme(st, themeId);
+    var s = t && findSubject(t, subjectId);
+    if (!s) return;
+    s.questions = s.questions || [];
+    s.questions.push({ id: "tmp_" + uid(), text: text, author: me });
+    persist(st, key, { action: "addQuestion", subjectId: subjectId, text: text, person: me });
+  }
+
+  function toggleMember(themeId, subjectId, field) {
+    if (isTemp(subjectId)) { toast("Espere o assunto terminar de salvar."); return; }
+    var st = cloneState();
+    var t = findTheme(st, themeId);
+    var s = t && findSubject(t, subjectId);
+    if (!s) return;
+    var list = s[field] = (s[field] || []).map(person);
+    var i = -1;
+    list.forEach(function (p, idx) { if (emailKey(p.email) === emailKey(me.email)) i = idx; });
+    if (i === -1) list.push({ name: me.name, email: me.email }); else list.splice(i, 1);
+    persist(st, null, {
+      action: field === "voters" ? "toggleVote" : "toggleExpert",
+      subjectId: subjectId,
+      person: me
+    });
+  }
+
+  /* ---------------- events ---------------- */
+
+  function onSubmit(e) {
+    var form = e.target.closest("form[data-form]");
+    if (!form) return;
+    e.preventDefault();
+    var kind = form.getAttribute("data-form");
+
+    if (kind === "enter") {
+      var name = (form.querySelector('[name="name"]').value || "").trim();
+      var email = (form.querySelector('[name="email"]').value || "").trim();
+      var err = { name: name, email: email };
+      if (name.length < 2) err.nameErr = "Escreva seu nome (pelo menos 2 letras).";
+      if (!isEmail(email)) err.emailErr = "E-mail inválido. Use o formato voce@empresa.com.";
+      if (err.nameErr || err.emailErr) { ui.gateErr = err; paint(); return; }
+      ui.gateErr = null;
+      me = { name: name, email: email };
+      saveMe(me);
+      paint();
+      return;
+    }
+
+    if (isReadOnly) return;
+    var value = (form.querySelector('input[type="text"]').value || "").trim();
+    if (!value) return;
+
+    if (kind === "add-theme") addTheme(value);
+    else if (kind === "add-subject") addSubject(form.getAttribute("data-th"), value);
+    else if (kind === "add-question") addQuestion(form.getAttribute("data-th"), form.getAttribute("data-t"), value);
+  }
+
+  function onClick(e) {
+    var btn = e.target.closest("[data-action]");
+    if (!btn || btn.disabled) return;
+    var action = btn.getAttribute("data-action");
+
+    if (action === "clear-search") { ui.search = ""; paint(); return; }
+
+    if (action === "retry") { loading = true; paint(); refresh(); return; }
+
+    if (action === "copy-email") {
+      var em = btn.getAttribute("data-email");
+      if (!em) { toast("Essa pessoa entrou antes de o e-mail ser pedido."); return; }
+      copyText(em, "E-mail copiado: " + em);
+      return;
+    }
+
+    if (action === "export-csv") { exportCsv(); return; }
+    if (action === "export-md") { exportMarkdown(); return; }
+
+    if (action === "toggle-howto") {
+      var open = !howtoIsOpen();
+      setHowtoOpen(open);
+      paint();
+      return;
+    }
+
+    if (action === "switch-user") {
+      clearMe(); me = null; ui.search = ""; ui.notices = {}; paint(); return;
+    }
+
+    if (action === "dismiss-notice") { delete ui.notices[btn.getAttribute("data-key")]; paint(); return; }
+
+    if (action === "force") {
+      var key = btn.getAttribute("data-key");
+      var n = ui.notices[key];
+      if (!n || n.kind !== "warn") return;
+      var val = n.value;
+      delete ui.notices[key];
+      if (key === "theme") addTheme(val, true);
+      else if (key.indexOf("s:") === 0) addSubject(key.slice(2), val, true);
+      else if (key.indexOf("q:") === 0) {
+        var sId = key.slice(2);
+        var thId = themeIdOfSubject(state, sId);
+        if (thId) addQuestion(thId, sId, val, true);
+      }
+      return;
+    }
+
+    if (isReadOnly) return;
+
+    if (action === "vote") { toggleMember(btn.getAttribute("data-th"), btn.getAttribute("data-t"), "voters"); return; }
+    if (action === "help") { toggleMember(btn.getAttribute("data-th"), btn.getAttribute("data-t"), "experts"); return; }
+    if (action === "sched") {
+      var sid = btn.getAttribute("data-t");
+      if (isTemp(sid)) { toast("Espere o assunto terminar de salvar."); return; }
+      var st4 = cloneState();
+      var t4 = findTheme(st4, btn.getAttribute("data-th"));
+      var s4 = t4 && findSubject(t4, sid);
+      if (!s4) return;
+      s4.scheduled = !s4.scheduled;
+      persist(st4, null, { action: "toggleScheduled", subjectId: sid });
+      return;
+    }
+  }
+
+  function onInput(e) {
+    var el = e.target.closest('[data-role="search"]');
+    if (!el) return;
+    ui.search = el.value;
+    repaintBody();
+  }
+
+  function init() {
+    state = { themes: [] };
+    me = loadMe();
+    var app = document.getElementById("app");
+    app.addEventListener("submit", onSubmit);
+    app.addEventListener("click", onClick);
+    app.addEventListener("input", onInput);
+    paint();
+
+    refresh();
+    setInterval(function () {
+      if (document.hidden || pending > 0) return;
+      refresh(true);
+    }, 20000);
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden && pending === 0) refresh(true);
+    });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
+</script>
+</body>
+</html>

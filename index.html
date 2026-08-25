@@ -441,16 +441,6 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
     return hits / Math.max(ta.length, tb.length);
   }
   function isEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || "").trim()); }
-  function normPhone(v) {
-    var d = String(v == null ? "" : v).replace(/\D/g, "");
-    if (d.length > 11 && d.indexOf("55") === 0) d = d.slice(2);
-    if (d.length === 12 && d.charAt(0) === "0") d = d.slice(1);
-    return d.length === 11 ? d : "";
-  }
-  function prettyPhone(d) {
-    d = normPhone(d);
-    return d ? "(" + d.slice(0,2) + ") " + d.slice(2,7) + "-" + d.slice(7) : "";
-  }
   function canEdit(author) {
     return !!(me && person(author).email &&
       emailKey(person(author).email) === emailKey(me.email));
@@ -501,8 +491,8 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
       var raw = localStorage.getItem("pmx_me");
       if (!raw) return null;
       var p = JSON.parse(raw);
-      if (p && p.name && isEmail(p.email) && normPhone(p.whatsapp))
-        return { name: p.name, email: p.email, whatsapp: normPhone(p.whatsapp) };
+      if (p && p.name && isEmail(p.email) && String(p.pass || "").length)
+        return { name: p.name, email: p.email, pass: String(p.pass) };
     } catch (e) {}
     return null;
   }
@@ -635,17 +625,16 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
         '<div class="field"><label for="g-email">Seu e-mail</label>' +
         '<input id="g-email" type="email" name="email" maxlength="80" autocomplete="email" placeholder="voce@empresa.com" value="' + esc(e.email || "") + '" />' +
         (e.emailErr ? '<span class="err">' + esc(e.emailErr) + '</span>' : '') + '</div>' +
-        '<div class="field"><label for="g-zap">Seu WhatsApp</label>' +
-        '<input id="g-zap" type="tel" name="whatsapp" maxlength="20" autocomplete="tel" inputmode="numeric" placeholder="11 91234-5678" value="' + esc(e.whatsapp || "") + '" />' +
-        (e.zapErr ? '<span class="err">' + esc(e.zapErr) + '</span>'
-                  : '<span class="hint">DDD + 9 dígitos. Confirmo se você está no grupo.</span>') + '</div>' +
+        '<div class="field"><label for="g-pass">Senha do mural</label>' +
+        '<input id="g-pass" type="text" name="pass" maxlength="60" autocomplete="off" spellcheck="false" placeholder="a senha que está no grupo" value="' + esc(e.pass || "") + '" />' +
+        (e.passErr ? '<span class="err">' + esc(e.passErr) + '</span>'
+                   : '<span class="hint">Está fixada no grupo do WhatsApp. Maiúscula e acento não importam.</span>') + '</div>' +
         '<button class="btn primary" type="submit"' + (ui.gateBusy ? ' disabled' : '') + '>' +
         (ui.gateBusy ? 'Verificando…' : 'Entrar no mural') + '</button>' +
       '</form>' +
-      (e.blocked ? '<div class="gate-blocked"><b>Não encontrei seu número na lista.</b>' +
-        '<span>Avisa lá no grupo do WhatsApp que a gente te libera. ' +
-        'Confere também se digitou DDD + 9 dígitos.</span></div>' : '') +
-      '<p class="fineprint">Nome, e-mail e WhatsApp ficam salvos só no seu navegador. Seu número não aparece no mural — serve apenas para confirmar que você é do grupo.</p>' +
+      (e.blocked ? '<div class="gate-blocked"><b>Senha incorreta.</b>' +
+        '<span>Ela está fixada no grupo do WhatsApp. Se não achar, avisa lá no grupo.</span></div>' : '') +
+      '<p class="fineprint">Nome e e-mail ficam salvos só no seu navegador e aparecem no mural junto do que você publicar.</p>' +
     '</div></div>';
   }
 
@@ -801,7 +790,7 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
     var banner = "";
     if (opts.neutral) banner = "";
     else if (loading) banner = '<div class="banner">Carregando o mural…</div>';
-    else if (!guardOn) banner = '<div class="banner err">A lista de participantes ainda não está configurada — <b>qualquer pessoa com o link entra</b>. Preencha a aba <code>allowlist</code> na planilha.</div>';
+    else if (!guardOn) banner = '<div class="banner err">A senha ainda não foi definida — <b>qualquer pessoa com o link entra</b>. Escreva a senha na célula <code>B1</code> da aba <code>config</code> da planilha.</div>';
     else if (netError) banner = '<div class="banner err">Não estou conseguindo falar com a planilha. O que você fizer agora pode não ser salvo. <button type="button" class="linkish" data-action="retry">tentar de novo</button></div>';
 
     var searchVal = opts.neutral ? "" : ui.search;
@@ -991,13 +980,14 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
   function withMe(body) {
     var b = {};
     Object.keys(body).forEach(function (k) { b[k] = body[k]; });
-    b.person = me ? { name: me.name, email: me.email, whatsapp: me.whatsapp } : null;
+    b.person = me ? { name: me.name, email: me.email } : null;
+    b.pass = me ? me.pass : "";
     return b;
   }
 
   function handleDenied(res) {
     var code = res && res.code;
-    if (code === "not_allowed" || code === "bad_phone") {
+    if (code === "bad_pass") {
       clearMe();
       me = null;
       ui.gateErr = { blocked: true };
@@ -1248,15 +1238,14 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
       if (ui.gateBusy) return;
       var name = (form.querySelector('[name="name"]').value || "").trim();
       var email = (form.querySelector('[name="email"]').value || "").trim();
-      var zapRaw = (form.querySelector('[name="whatsapp"]').value || "").trim();
-      var zap = normPhone(zapRaw);
-      var err = { name: name, email: email, whatsapp: zapRaw };
+      var pass = (form.querySelector('[name="pass"]').value || "").trim();
+      var err = { name: name, email: email, pass: pass };
       if (name.length < 2) err.nameErr = "Escreva seu nome (pelo menos 2 letras).";
       if (!isEmail(email)) err.emailErr = "E-mail inválido. Use o formato voce@empresa.com.";
-      if (!zap) err.zapErr = "Número inválido. Use DDD + 9 dígitos, ex.: 11 91234-5678.";
-      if (err.nameErr || err.emailErr || err.zapErr) { ui.gateErr = err; paint(); return; }
+      if (!pass) err.passErr = "Digite a senha do mural.";
+      if (err.nameErr || err.emailErr || err.passErr) { ui.gateErr = err; paint(); return; }
 
-      var candidate = { name: name, email: email, whatsapp: zap };
+      var candidate = { name: name, email: email, pass: pass };
       me = candidate;
       ui.gateErr = null;
       ui.gateBusy = true;
@@ -1274,18 +1263,18 @@ form.inline input[type="text"]:focus { border-color: var(--accent); }
           return;
         }
         me = null;
-        if (res && (res.code === "not_allowed" || res.code === "bad_phone")) {
-          ui.gateErr = { name: name, email: email, whatsapp: zapRaw, blocked: true };
+        if (res && res.code === "bad_pass") {
+          ui.gateErr = { name: name, email: email, pass: pass, blocked: true };
         } else {
-          ui.gateErr = { name: name, email: email, whatsapp: zapRaw,
-            zapErr: "Não deu para verificar agora. Tente de novo em alguns segundos." };
+          ui.gateErr = { name: name, email: email, pass: pass,
+            passErr: "Não deu para verificar agora. Tente de novo em alguns segundos." };
         }
         paint();
       }).catch(function () {
         ui.gateBusy = false;
         me = null;
-        ui.gateErr = { name: name, email: email, whatsapp: zapRaw,
-          zapErr: "Sem conexão com a planilha. Tente de novo." };
+        ui.gateErr = { name: name, email: email, pass: pass,
+          passErr: "Sem conexão com a planilha. Tente de novo." };
         paint();
       });
       return;
